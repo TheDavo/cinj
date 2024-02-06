@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -9,16 +10,63 @@ import (
 	"strings"
 )
 
-func main() {
-	// even though this file is in cmd/cinj/ directory
-	// the run command is from top level, which is where test.py resides
-	file, err := os.Open("test.py")
+type Filetype int
 
+const (
+	Python Filetype = iota
+)
+
+type Cinj struct {
+	File   *os.File
+	Points []CinjPoint
+}
+
+type CinjPoint struct {
+	LineNum int
+	Command CinjCommand
+	Merged  bool
+	Type    Filetype
+}
+
+type CinjCommand struct {
+	File *os.File
+	Args []string
+}
+
+func main() {
+	var filename string
+	var newname string
+
+	flag.StringVar(&filename, "fn", "", "Filepath of the Markdown file to Cinj")
+	flag.StringVar(&newname, "newname", "", "New name for output file")
+
+	flag.Parse()
+	if filename == "" {
+		log.Fatal("No file provided")
+		os.Exit(1)
+	}
+
+	splitFile := strings.Split(filename, ".")
+	ext := splitFile[len(splitFile)-1]
+	if ext != "md" && ext != "cinj" {
+		log.Fatal("Unrecognized or incorrect filetype")
+		os.Exit(1)
+	}
+
+	file, err := os.Open(filename)
 	if err != nil {
+		fmt.Println(filename)
 		log.Fatal(err)
 	}
 
 	defer file.Close()
+}
+
+func (c *Cinj) FindPoints() []CinjPoint {
+	return []CinjPoint{}
+}
+
+func ParsePy(file *os.File, cmd CinjCommand) {
 
 	scanner := bufio.NewScanner(file)
 
@@ -64,9 +112,8 @@ func main() {
 		fmt.Println("Token not found")
 	}
 
-	_, err = file.Seek(0, io.SeekStart)
+	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
