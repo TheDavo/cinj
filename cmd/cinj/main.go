@@ -17,8 +17,8 @@ const (
 )
 
 type Cinj struct {
-	File   *os.File
-	Points []CinjPoint
+	Filepath string
+	Points   []CinjPoint
 }
 
 type CinjPoint struct {
@@ -29,41 +29,46 @@ type CinjPoint struct {
 }
 
 type CinjCommand struct {
-	File *os.File
-	Args []string
+	Filepath string
+	Args     []string
 }
 
 func main() {
-	var filename string
+	var cinj Cinj
+	var filepath string
 	var newname string
 
-	flag.StringVar(&filename, "fn", "", "Filepath of the Markdown file to Cinj")
+	flag.StringVar(&filepath, "fp", "", "Filepath of the Markdown file to Cinj")
 	flag.StringVar(&newname, "newname", "", "New name for output file")
 
 	flag.Parse()
-	if filename == "" {
+	if filepath == "" {
 		log.Fatal("No file provided")
 		os.Exit(1)
 	}
 
-	splitFile := strings.Split(filename, ".")
+	splitFile := strings.Split(filepath, ".")
 	ext := splitFile[len(splitFile)-1]
 	if ext != "md" && ext != "cinj" {
 		log.Fatal("Unrecognized or incorrect filetype")
 		os.Exit(1)
 	}
 
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Println(filename)
-		log.Fatal(err)
-	}
-
-	defer file.Close()
+	cinj.Filepath = filepath
+	cinj.Run()
 }
 
 func (c *Cinj) FindPoints() []CinjPoint {
 	return []CinjPoint{}
+}
+
+func (c *Cinj) Run() {
+	file, err := os.Open(c.Filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer file.Close()
 }
 
 func ParsePy(file *os.File, cmd CinjCommand) {
