@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -19,6 +20,7 @@ const (
 type Cinj struct {
 	Filepath string
 	Points   []CinjPoint
+	Newname  string
 }
 
 type CinjPoint struct {
@@ -47,11 +49,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	splitFile := strings.Split(filepath, ".")
-	ext := splitFile[len(splitFile)-1]
-	if ext != "md" && ext != "cinj" {
+	fileext := path.Ext(filepath)
+
+	if fileext != "md" && fileext != "cinj" {
 		log.Fatal("Unrecognized or incorrect filetype")
 		os.Exit(1)
+	}
+
+	if newname != "" {
+		newExt := path.Ext(newname)
+		if newExt == "" {
+			cinj.Newname = newname + ".md"
+		} else {
+			cinj.Newname = newname
+		}
 	}
 
 	cinj.Filepath = filepath
