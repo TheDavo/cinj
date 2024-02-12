@@ -19,15 +19,9 @@ const (
 
 type Cinj struct {
 	Filepath string
-	Points   []CinjPoint
 	Newname  string
-}
-
-type CinjPoint struct {
-	LineNum int
-	Command CinjCommand
-	Merged  bool
-	Type    Filetype
+	SrcFile  *os.File
+	DestFile *os.File
 }
 
 type CinjCommand struct {
@@ -69,17 +63,58 @@ func main() {
 	cinj.Run()
 }
 
-func (c *Cinj) FindPoints() []CinjPoint {
-	return []CinjPoint{}
-}
-
 func (c *Cinj) Run() {
 	file, err := os.Open(c.Filepath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	newFile, err := os.Create(c.Newname)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c.SrcFile = file
+	c.DestFile = newFile
+
+	c.cinj()
+
 	defer file.Close()
+	defer newFile.Close()
+}
+
+func (c *Cinj) cinj() {
+
+	srcScanner := bufio.NewScanner(c.SrcFile)
+	destWriter := bufio.NewWriter(c.DestFile)
+
+	for srcScanner.Scan() {
+		line := srcScanner.Text()
+
+		if strings.HasPrefix(line, "cinj") {
+			command := c.getCinjCommand(line)
+			content := c.getContentFromCommand(command)
+			contentScanner := bufio.NewScanner(strings.NewReader(content))
+
+			for contentScanner.Scan() {
+				contentLine := contentScanner.Text()
+				destWriter.WriteString(contentLine)
+			}
+			srcScanner.Scan()
+		}
+
+		destWriter.WriteString(line)
+
+	}
+}
+
+func (c Cinj) getCinjCommand(s string) CinjCommand {
+	var res CinjCommand
+	return res
+}
+
+func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
+	return ""
 }
 
 func ParsePy(file *os.File, cmd CinjCommand) {
