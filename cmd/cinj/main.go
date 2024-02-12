@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -92,7 +93,11 @@ func (c *Cinj) cinj() {
 		line := srcScanner.Text()
 
 		if strings.HasPrefix(line, "cinj") {
-			command := c.getCinjCommand(line)
+			command, err := c.getCinjCommand(line)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			content := c.getContentFromCommand(command)
 			contentScanner := bufio.NewScanner(strings.NewReader(content))
 
@@ -108,9 +113,21 @@ func (c *Cinj) cinj() {
 	}
 }
 
-func (c Cinj) getCinjCommand(s string) CinjCommand {
-	var res CinjCommand
-	return res
+func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
+	var cmd CinjCommand
+	if len(s) <= 6 {
+		return cmd, errors.New("Cinj command found too short, must contain 'cinj{arg}' at minimum")
+	}
+
+	content := strings.Split(s, " ")
+	if len(content) <= 1 {
+		return cmd, errors.New("No arguments provided for Cinj command")
+	}
+
+	cmd.Filepath = content[0]
+	cmd.Args = content[1:]
+
+	return cmd, nil
 }
 
 func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
