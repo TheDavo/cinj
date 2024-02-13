@@ -159,10 +159,12 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	content := s[5 : len(s)-1]
 	contentSplit := strings.Split(content, " ")
 
-	if len(content) < 1 {
-		cmd.Filepath = contentSplit[0]
-	} else {
-		cmd.Filepath = contentSplit[0]
+	cmd.Filepath = contentSplit[0]
+	if filepath.IsLocal(cmd.Filepath) {
+		resolvedPath := filepath.Join(filepath.Dir(c.Filepath), cmd.Filepath)
+		cmd.Filepath = resolvedPath
+	}
+	if len(content) > 1 {
 		cmd.Args = contentSplit[1:]
 	}
 
