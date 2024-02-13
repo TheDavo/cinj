@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -32,62 +32,92 @@ type CinjCommand struct {
 
 func main() {
 	var cinj Cinj
-	var filepath string
+	var fp string
 	var newname string
 
-	flag.StringVar(&filepath, "fp", "", "Filepath of the Markdown file to Cinj")
+	flag.StringVar(&fp, "fp", "", "Filepath of the Markdown file to Cinj")
 	flag.StringVar(&newname, "newname", "", "New name for output file")
 
 	flag.Parse()
-	if filepath == "" {
+	if fp == "" {
 		log.Fatal("No file provided")
 		os.Exit(1)
 	}
 
-	fileext := path.Ext(filepath)
+	absFp, err := filepath.Abs(fp)
 
-	if fileext != "md" && fileext != "cinj" {
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fileext := filepath.Ext(absFp)
+
+	if fileext != ".md" && fileext != ".cinj" {
 		log.Fatal("Unrecognized or incorrect filetype")
 		os.Exit(1)
 	}
+	cinj.Filepath = absFp
 
-	if newname != "" {
-		newExt := path.Ext(newname)
-		if newExt == "" {
-			cinj.Newname = newname + ".md"
+	// Default case
+	if newname == "" {
+		temp, found := strings.CutSuffix(absFp, fileext)
+		if found && fileext == ".md" {
+			cinj.Newname = temp + ".cinj.md"
 		} else {
+			cinj.Newname = temp + ".md"
+		}
+	} else {
+		if filepath.IsAbs(newname) {
+			// Handle the case that the newname flag is the same as the original file
+			if newname == absFp {
+				if fileext == ".md" {
+					newname = newname[:len(newname)-len(fileext)] + ".cinj.md"
+				} else {
+					newname = newname[:len(newname)-len(fileext)] + ".md"
+				}
+				cinj.Newname = newname
+			}
 			cinj.Newname = newname
+		} else {
+			absNew, _ := filepath.Abs(newname)
+			if absNew == absFp {
+				if fileext == ".md" {
+					absNew = absNew[:len(absNew)-len(fileext)] + ".cinj.md"
+				} else {
+					absNew = absNew[:len(absNew)-len(fileext)] + ".md"
+				}
+			}
+			cinj.Newname = absNew
 		}
 	}
 
-	cinj.Filepath = filepath
+	fmt.Println("newname", cinj.Newname)
 	cinj.Run()
 }
 
 func (c *Cinj) Run() {
 	file, err := os.Open(c.Filepath)
 	if err != nil {
+		fmt.Println("Failure opening file", c.Filepath)
 		log.Fatal(err)
 	}
+	defer file.Close()
 
 	newFile, err := os.Create(c.Newname)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer newFile.Close()
 
 	c.SrcFile = file
 	c.DestFile = newFile
 
 	c.cinj()
-
-	defer file.Close()
-	defer newFile.Close()
 }
 
 func (c *Cinj) cinj() {
 
 	srcScanner := bufio.NewScanner(c.SrcFile)
-	destWriter := bufio.NewWriter(c.DestFile)
 
 	for srcScanner.Scan() {
 		line := srcScanner.Text()
@@ -98,17 +128,24 @@ func (c *Cinj) cinj() {
 				log.Fatal(err)
 			}
 
+			syntaxHighlight := c.getFileExtForMarkdown(command)
 			content := c.getContentFromCommand(command)
 			contentScanner := bufio.NewScanner(strings.NewReader(content))
 
+			c.DestFile.WriteString("```" + syntaxHighlight + "\n")
 			for contentScanner.Scan() {
 				contentLine := contentScanner.Text()
-				destWriter.WriteString(contentLine)
-			}
-			srcScanner.Scan()
-		}
+				_, err := c.DestFile.WriteString(contentLine + "\n")
 
-		destWriter.WriteString(line)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			c.DestFile.WriteString("```\n")
+			srcScanner.Scan()
+		} else {
+			c.DestFile.WriteString(line + "\n")
+		}
 
 	}
 }
@@ -119,18 +156,37 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 		return cmd, errors.New("Cinj command found too short, must contain 'cinj{arg}' at minimum")
 	}
 
-	content := strings.Split(s, " ")
-	if len(content) <= 1 {
-		return cmd, errors.New("No arguments provided for Cinj command")
-	}
+	content := s[5 : len(s)-1]
+	contentSplit := strings.Split(content, " ")
 
-	cmd.Filepath = content[0]
-	cmd.Args = content[1:]
+	if len(content) < 1 {
+		cmd.Filepath = contentSplit[0]
+	} else {
+		cmd.Filepath = contentSplit[0]
+		cmd.Args = contentSplit[1:]
+	}
 
 	return cmd, nil
 }
 
 func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
+	content, err := os.ReadFile(cmd.Filepath)
+	if err != nil {
+		log.Fatal(err)
+		return ""
+	}
+
+	return string(content)
+}
+
+func (c Cinj) getFileExtForMarkdown(cmd CinjCommand) string {
+	switch filepath.Ext(cmd.Filepath) {
+	case ".py":
+		return "python"
+	case ".js":
+		return "javascript"
+	}
+
 	return ""
 }
 
