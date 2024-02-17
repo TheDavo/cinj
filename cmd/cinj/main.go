@@ -164,8 +164,9 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 		resolvedPath := filepath.Join(filepath.Dir(c.Filepath), cmd.Filepath)
 		cmd.Filepath = resolvedPath
 	}
-	if len(content) > 1 {
+	if len(contentSplit) > 1 {
 		cmd.Args = contentSplit[1:]
+		fmt.Println(cmd.Args)
 	}
 
 	return cmd, nil
