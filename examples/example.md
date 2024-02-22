@@ -1,8 +1,17 @@
 # Header 1
 This is content before the code snippet!
 
+command used: cinj{c:/users/david/documents/projects/cinj/examples/example.py}
 cinj{c:/users/david/documents/projects/cinj/examples/example.py}
 
+Use supported commands to grab pertinent content!
+
+command used: cinj{./example.py --class=Test}
 cinj{./example.py --class=Test}
+
+
+
+command used: cinj{./example.py --function=print_content}
+cinj{./example.py --function=print_content}
 
 This is content after!
