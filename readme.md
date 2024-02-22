@@ -64,7 +64,7 @@ cinj{./server.c --lines="10-20"}
 
 ```
 
-## Python - Not Implemented
+## Python
 
 Cinj's commands can be extended to limit the scope of code copied into a
 markdown file, such as a particular classes or functions
@@ -75,12 +75,18 @@ markdown file, such as a particular classes or functions
 cinj{./my_file.py --class="ExampleClass"}
 
 # Grab a function from the file
-cinj{./my_file.py --func="example_function"}
+cinj{./my_file.py --function="example_function"}
 
-# Opt out of including decorator names in the content grab, default is true
-cinj{./my_files.py --decorators="false"}
+# Opt out of including decorator names in the content grab when not grabbing
+# all file contents, default is true
+cinj{./my_files.py --function="example_function" --decorators="false"}
 
 ```
+
+Implemented:
+- [x] class
+- [x] functions
+- [ ] decorators
 
 ## JavaScript
 
