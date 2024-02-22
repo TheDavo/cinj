@@ -12,11 +12,27 @@ import (
 	"strings"
 )
 
-type Filetype int
+type Filetype string
 
 const (
-	Python Filetype = iota
+	Python     Filetype = "python"
+	Javascript          = "javascript"
+	Markdown            = "md"
+	Text                = ""
+	Plain               = ""
 )
+
+type SupportedArgs map[Filetype][]string
+
+func (ft Filetype) String() string {
+	return string(ft)
+}
+
+type PythonArgs struct {
+	Class      []string
+	Func       []string
+	Decorators bool
+}
 
 type Cinj struct {
 	Filepath string
@@ -28,6 +44,8 @@ type Cinj struct {
 type CinjCommand struct {
 	Filepath string
 	Args     []string
+	FileType Filetype
+	SuppArgs []string
 }
 
 func main() {
@@ -128,25 +146,28 @@ func (c *Cinj) cinj() {
 				log.Fatal(err)
 			}
 
-			syntaxHighlight := c.getFileExtForMarkdown(command)
-			content := c.getContentFromCommand(command)
-			contentScanner := bufio.NewScanner(strings.NewReader(content))
+			language := command.fileExtForMarkDown()
+			contents := c.getContentFromCommand(command)
 
-			c.DestFile.WriteString("```" + syntaxHighlight + "\n")
-			for contentScanner.Scan() {
-				contentLine := contentScanner.Text()
-				_, err := c.DestFile.WriteString(contentLine + "\n")
+			for _, content := range contents {
+				contentScanner := bufio.NewScanner(strings.NewReader(content))
 
-				if err != nil {
-					log.Fatal(err)
+				c.DestFile.WriteString("```" + language.String() + "\n")
+				for contentScanner.Scan() {
+					contentLine := contentScanner.Text()
+					_, err := c.DestFile.WriteString(contentLine + "\n")
+
+					if err != nil {
+						log.Fatal(err)
+					}
 				}
+				c.DestFile.WriteString("```\n")
+				srcScanner.Scan()
+
 			}
-			c.DestFile.WriteString("```\n")
-			srcScanner.Scan()
 		} else {
 			c.DestFile.WriteString(line + "\n")
 		}
-
 	}
 }
 
@@ -163,6 +184,7 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	if filepath.IsLocal(cmd.Filepath) {
 		resolvedPath := filepath.Join(filepath.Dir(c.Filepath), cmd.Filepath)
 		cmd.Filepath = resolvedPath
+		cmd.FileType = cmd.fileExtForMarkDown()
 	}
 	if len(contentSplit) > 1 {
 		cmd.Args = contentSplit[1:]
@@ -172,7 +194,20 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	return cmd, nil
 }
 
-func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
+func (c Cinj) getContentFromCommand(cmd CinjCommand) []string {
+	switch cmd.FileType {
+	case Python:
+		return cmd.python()
+	default:
+		return []string{cmd.returnAll()}
+	}
+}
+
+func (cmd CinjCommand) extractContent() ([]string, error) {
+	return []string{}, nil
+}
+
+func (cmd CinjCommand) returnAll() string {
 	content, err := os.ReadFile(cmd.Filepath)
 	if err != nil {
 		log.Fatal(err)
@@ -180,67 +215,120 @@ func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
 	}
 
 	return string(content)
+
 }
 
-func (c Cinj) getFileExtForMarkdown(cmd CinjCommand) string {
+func (cmd CinjCommand) fileExtForMarkDown() Filetype {
 	switch filepath.Ext(cmd.Filepath) {
 	case ".py":
-		return "python"
+		return Python
 	case ".js":
-		return "javascript"
+		return Javascript
+	case ".txt":
+		return Text
+	case ".md":
+		return Markdown
 	}
 
-	return ""
+	return Plain
 }
 
-func ParsePy(file *os.File, cmd CinjCommand) {
+func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 
-	scanner := bufio.NewScanner(file)
+	content := strings.Builder{}
 
+	pythonFile, err := os.Open(cmd.Filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(pythonFile)
 	if scanner.Err() != nil {
 		log.Println(scanner.Err())
 	}
 
-	token := "Test2"
+	var lookingFor string
+	switch token {
+	case "class":
+		lookingFor = "class " + tokenValue
+	case "function":
+		lookingFor = "def " + tokenValue
+	}
+
+	fmt.Println(lookingFor)
+
 	index := -1
-	found_token := false
-	found_end := false
-	found_loc := 0
-	index_non_ws := 0 // Index of first non-whitespace character
-	end_search := 0
+	foundToken := false
+	foundEnd := false
+	indexNonWs := 0 // Index of first non-whitespace character
 
 	for scanner.Scan() {
+		// var endSearch int
+		// var foundLoc int
 		index++
 		line := scanner.Text()
 
-		len_trim := 0
-		if found_token {
-			empty_line := len(line) == 0
-			len_trim = len(line) - len(strings.TrimLeft(line, " \t"))
-			end_critera := len_trim-index_non_ws <= 0
-			if !empty_line && end_critera && !found_end {
-				found_end = true
-				end_search = index
+		lenTrim := 0
+		if foundToken {
+			emptyLine := len(line) == 0
+			lenTrim = len(line) - len(strings.TrimLeft(line, " \t"))
+			endCriteria := lenTrim-indexNonWs <= 0
+			content.WriteString(line + "\n")
+			if !emptyLine && endCriteria && !foundEnd {
+				foundEnd = true
+				// endSearch = index
 			}
 		}
 
-		if strings.Contains(line, token) && !found_token {
-			found_loc = index
-			found_token = true
-			index_non_ws = len(line) - len(strings.TrimLeft(line, " \t"))
-			fmt.Println("index non ws ", index_non_ws)
+		if strings.Contains(line, lookingFor) && !foundToken {
+			// foundLoc = index
+			foundToken = true
+			indexNonWs = len(line) - len(strings.TrimLeft(line, " \t"))
+			content.WriteString(line + "\n")
 		}
-
-		fmt.Println("line:", index, line)
-	}
-	if found_token {
-		fmt.Println("Found token on line", found_loc, "and ended on line ", end_search)
-	} else {
-		fmt.Println("Token not found")
 	}
 
-	_, err := file.Seek(0, io.SeekStart)
+	if !foundToken {
+		log.Fatal("Token ", lookingFor, " not found!")
+	}
+
+	_, err = pythonFile.Seek(0, io.SeekStart)
 	if err != nil {
 		log.Fatal(err)
 	}
+	return content.String()
+}
+
+func (cmd CinjCommand) python() []string {
+	var class string
+	var function string
+	var decorator bool
+	var content []string
+
+	pyFlag := flag.NewFlagSet("pyFlag", flag.PanicOnError)
+	pyFlag.StringVar(&class, "class", "", "Grab entire content of a class")
+	pyFlag.StringVar(&function, "function", "", "Grab contents of a function")
+	pyFlag.BoolVar(&decorator, "decorator", true, "Include decorators when grabbing other content")
+
+	err := pyFlag.Parse(cmd.Args)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if class != "" {
+		classes := strings.Split(class, " ")
+		for _, c := range classes {
+			content = append(content, cmd.parsePython("class", c))
+		}
+	}
+
+	if function != "" {
+		functions := strings.Split(function, " ")
+		for _, f := range functions {
+			content = append(content, cmd.parsePython("function", f))
+		}
+	}
+
+	return content
 }
