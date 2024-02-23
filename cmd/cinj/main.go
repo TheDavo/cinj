@@ -188,7 +188,6 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	}
 	if len(contentSplit) > 1 {
 		cmd.Args = contentSplit[1:]
-		fmt.Println(cmd.Args)
 	}
 
 	return cmd, nil
@@ -236,6 +235,9 @@ func (cmd CinjCommand) fileExtForMarkDown() Filetype {
 func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 
 	content := strings.Builder{}
+	content.WriteString("# in file " + filepath.Base(cmd.Filepath) + "\n")
+
+	depth := []string{}
 
 	pythonFile, err := os.Open(cmd.Filepath)
 	if err != nil {
@@ -255,8 +257,6 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 		lookingFor = "def " + tokenValue
 	}
 
-	fmt.Println(lookingFor)
-
 	index := -1
 	foundToken := false
 	foundEnd := false
@@ -268,15 +268,26 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 		index++
 		line := scanner.Text()
 
+		trimmedLine := strings.TrimLeft(line, " \t")
+		if strings.HasPrefix(trimmedLine, "class") {
+			depth = append(depth, trimmedLine)
+		}
+
 		lenTrim := 0
 		if foundToken {
 			emptyLine := len(line) == 0
 			lenTrim = len(line) - len(strings.TrimLeft(line, " \t"))
 			endCriteria := lenTrim-indexNonWs <= 0
-			content.WriteString(line + "\n")
 			if !emptyLine && endCriteria && !foundEnd {
 				foundEnd = true
 				// endSearch = index
+				break
+			}
+
+			if !emptyLine {
+				content.WriteString(line[indexNonWs:] + "\n")
+			} else {
+				content.WriteString("\n")
 			}
 		}
 
@@ -284,7 +295,23 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 			// foundLoc = index
 			foundToken = true
 			indexNonWs = len(line) - len(strings.TrimLeft(line, " \t"))
-			content.WriteString(line + "\n")
+
+			// Add flavor text to provide context of the code snippet
+			if len(depth) > 0 && !strings.Contains(depth[len(depth)-1], lookingFor) {
+				comment := depth[len(depth)-1]
+
+				// Cuts off the colon at the end of python declarations
+				if string(comment[len(comment)-1]) == ":" {
+					content.WriteString("# in " + comment[0:len(comment)-1] + "\n")
+				} else {
+					content.WriteString("# in " + comment + "\n")
+				}
+			}
+			if len(line) != 0 {
+				content.WriteString(line[indexNonWs:] + "\n")
+			} else {
+				content.WriteString("\n")
+			}
 		}
 	}
 
