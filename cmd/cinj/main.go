@@ -78,11 +78,15 @@ func main() {
 
 	// Default case
 	if newname == "" {
-		temp, found := strings.CutSuffix(absFp, fileext)
-		if found && fileext == ".md" {
-			cinj.Newname = temp + ".cinj.md"
-		} else {
-			cinj.Newname = temp + ".md"
+		temp1, found1 := strings.CutSuffix(absFp, ".cinj")
+		temp2, found2 := strings.CutSuffix(absFp, ".md")
+		temp3, found3 := strings.CutSuffix(absFp, ".cinj.md")
+		if found3 {
+			cinj.Newname = temp3 + ".md"
+		} else if found2 {
+			cinj.Newname = temp2 + ".cinj.md"
+		} else if found1 {
+			cinj.Newname = temp1 + ".md"
 		}
 	} else {
 		if filepath.IsAbs(newname) {
