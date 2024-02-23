@@ -29,7 +29,7 @@ name but without the Cinj extension is created.
 
 ```c
 
->> cinj my_report.cinj.md
+>> cinj -fp my_report.cinj.md
 >> ls
 >> my_report.md my_report.cinj.md
 
@@ -39,7 +39,7 @@ A new name for the output file can be specified when calling Cinj
 
 ```c
 
->> cinj my_report.md --name="new_name.md"
+>> cinj -fp my_report.md --name="new_name.md"
 >> ls
 >> my_report.md new_name.md
 
