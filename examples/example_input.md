@@ -4,7 +4,7 @@ This is content before the code snippet!
 command used: cinj{c:/users/david/documents/projects/cinj/examples/example.py}
 ```python
 import math
-
+from abc import ABC
 print(math.sin(0.37*math.pi))
 
 
@@ -14,23 +14,49 @@ class Test:
 
     def print_content(self):
         print(self.content)
+
+
+class MyABC(ABC):
+    def __init__(self):
+        pass
+
+    def abc_func(self):
+        pass
 ```
+
 Use supported commands to grab pertinent content!
+
 
 command used: cinj{./example.py --class=Test}
 ```python
+# in file example.py
 class Test:
     def __init__(self):
         self.content = "Nothing!"
 
     def print_content(self):
         print(self.content)
-```
 
+
+```
 
 command used: cinj{./example.py --function=print_content}
 ```python
-    def print_content(self):
-        print(self.content)
+# in file example.py
+# in class Test
+def print_content(self):
+    print(self.content)
+
+
 ```
+
+
+command used: cinj{./example.py --function=abc_func}
+```python
+# in file example.py
+# in class MyABC(ABC)
+def abc_func(self):
+    pass
+```
+
 This is content after!
