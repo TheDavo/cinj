@@ -16,9 +16,16 @@ command used: cinj{./example.py --function=print_content}
 cinj{./example.py --function=print_content}
 
 
-
 command used: cinj{./example.py --function=abc_func}
 cinj{./example.py --function=abc_func}
+
+
+command used: cinj{./example.py --class=Test --function=todo}
+cinj{./example.py --class=Test --function=todo}
+
+
+command used: cinj{./example.py --class=MyABC --function=todo}
+cinj{./example.py --class=MyABC --function=todo}
 
 
 This is content after!

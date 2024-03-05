@@ -10,10 +10,20 @@ class Test:
     def print_content(self):
         print(self.content)
 
+    @decorator1
+    @decorator2
+    def todo(self):
+        pass
+
 
 class MyABC(ABC):
     def __init__(self):
         pass
 
+    @decorator3
+    @decorator4
     def abc_func(self):
+        pass
+
+    def todo(self):
         pass
