@@ -20,6 +20,10 @@ command used: cinj{./example.py --function=abc_func}
 cinj{./example.py --function=abc_func}
 
 
+command used: cinj{./example.py --function=abc_func --decorator=false}
+cinj{./example.py --function=abc_func --decorator=false}
+
+
 command used: cinj{./example.py --class=Test --function=todo}
 cinj{./example.py --class=Test --function=todo}
 
