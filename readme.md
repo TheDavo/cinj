@@ -79,14 +79,21 @@ cinj{./my_file.py --function="example_function"}
 
 # Opt out of including decorator names in the content grab when not grabbing
 # all file contents, default is true
-cinj{./my_files.py --function="example_function" --decorators="false"}
+cinj{./my_file.py --function="example_function" --decorator="false"}
 
 ```
 
 Implemented:
 - [x] class
 - [x] functions
-- [ ] decorators
+- [x] decorators
+
+### Passing Both `Class` and `Function` Arguments
+
+When both `class` and `function` arguments have a value, Cinj will look
+for a `function` inside of the `class`. 
+This is useful if the source file contains many classes
+and only a particular `__init__` function needs to be copied over, for example.
 
 ## JavaScript
 
