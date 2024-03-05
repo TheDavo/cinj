@@ -51,24 +51,22 @@ func (c *Cinj) cinj() {
 			}
 
 			language := command.fileExtForMarkDown()
-			contents := c.getContentFromCommand(command)
+			content := c.getContentFromCommand(command)
 
-			for _, content := range contents {
-				contentScanner := bufio.NewScanner(strings.NewReader(content))
+			contentScanner := bufio.NewScanner(strings.NewReader(content))
 
-				c.DestFile.WriteString("```" + language.String() + "\n")
-				for contentScanner.Scan() {
-					contentLine := contentScanner.Text()
-					_, err := c.DestFile.WriteString(contentLine + "\n")
+			c.DestFile.WriteString("```" + language.String() + "\n")
+			for contentScanner.Scan() {
+				contentLine := contentScanner.Text()
+				_, err := c.DestFile.WriteString(contentLine + "\n")
 
-					if err != nil {
-						log.Fatal(err)
-					}
+				if err != nil {
+					log.Fatal(err)
 				}
-				c.DestFile.WriteString("```\n")
-				srcScanner.Scan()
-
 			}
+			c.DestFile.WriteString("```\n")
+			srcScanner.Scan()
+
 		} else {
 			c.DestFile.WriteString(line + "\n")
 		}
@@ -97,11 +95,11 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	return cmd, nil
 }
 
-func (c Cinj) getContentFromCommand(cmd CinjCommand) []string {
+func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
 	switch cmd.FileType {
 	case Python:
 		return cmd.python()
 	default:
-		return []string{cmd.returnAll()}
+		return cmd.returnAll()
 	}
 }

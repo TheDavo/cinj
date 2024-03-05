@@ -10,9 +10,70 @@ import (
 	"strings"
 )
 
-func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
+type pythonArgs struct {
+	decorator bool
+	class     string
+	function  string
+}
+
+func newPythonArgs() *pythonArgs {
+	return &pythonArgs{
+		decorator: false,
+		class:     "",
+		function:  "",
+	}
+}
+
+func (cmd CinjCommand) python() string {
+	var class string
+	var function string
+	var decorator bool
+	var content string
+
+	pyArgs := newPythonArgs()
+
+	pyFlag := flag.NewFlagSet("pyFlag", flag.PanicOnError)
+	pyFlag.StringVar(&class, "class", "", "Grab entire content of a class")
+	pyFlag.StringVar(&function, "function", "", "Grab contents of a function")
+	pyFlag.BoolVar(&decorator, "decorator", true, "Include decorators when grabbing other content")
+
+	err := pyFlag.Parse(cmd.Args)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pyArgs.decorator = decorator
+
+	if class != "" {
+		pyArgs.class = strings.Split(class, " ")[0]
+	}
+
+	if function != "" {
+		pyArgs.function = strings.Split(function, " ")[0]
+	}
+
+	content = cmd.parsePython(*pyArgs)
+
+	return content
+}
+
+func (cmd CinjCommand) parsePython(args pythonArgs) string {
+
+	if args.class == "" && args.function == "" {
+		cmd.returnAll()
+	}
+
+	findInsideClass := false
+	foundClass := false
+	lookingForClass := ""
+	if args.class != "" && args.function != "" {
+		findInsideClass = true
+		lookingForClass = "class " + args.class
+	}
 
 	content := strings.Builder{}
+	decorators := strings.Builder{}
 	content.WriteString("# in file " + filepath.Base(cmd.Filepath) + "\n")
 
 	depth := []string{}
@@ -28,11 +89,12 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 	}
 
 	var lookingFor string
-	switch token {
-	case "class":
-		lookingFor = "class " + tokenValue
-	case "function":
-		lookingFor = "def " + tokenValue
+	if args.class != "" {
+		lookingFor = "class " + args.class
+	}
+
+	if args.function != "" {
+		lookingFor = "def " + args.function
 	}
 
 	index := -1
@@ -49,12 +111,17 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 		trimmedLine := strings.TrimLeft(line, " \t")
 		if strings.HasPrefix(trimmedLine, "class") {
 			depth = append(depth, trimmedLine)
+			if findInsideClass {
+				if strings.Contains(trimmedLine, lookingForClass) {
+					foundClass = true
+				}
+			}
 		}
 
+		emptyLine := len(line) == 0
 		lenTrim := 0
 		if foundToken {
-			emptyLine := len(line) == 0
-			lenTrim = len(line) - len(strings.TrimLeft(line, " \t"))
+			lenTrim = len(line) - len(trimmedLine)
 			endCriteria := lenTrim-indexNonWs <= 0
 			if !emptyLine && endCriteria && !foundEnd {
 				foundEnd = true
@@ -69,10 +136,11 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 			}
 		}
 
-		if strings.Contains(line, lookingFor) && !foundToken {
+		// Start of the content has been found
+		if strings.Contains(line, lookingFor) && !foundToken && (findInsideClass == foundClass) {
 			// foundLoc = index
 			foundToken = true
-			indexNonWs = len(line) - len(strings.TrimLeft(line, " \t"))
+			indexNonWs = len(line) - len(trimmedLine)
 
 			// Add flavor text to provide context of the code snippet
 			if len(depth) > 0 && !strings.Contains(depth[len(depth)-1], lookingFor) {
@@ -85,10 +153,20 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 					content.WriteString("# in " + comment + "\n")
 				}
 			}
-			if len(line) != 0 {
+
+			content.WriteString(decorators.String())
+			if !emptyLine {
 				content.WriteString(line[indexNonWs:] + "\n")
 			} else {
 				content.WriteString("\n")
+			}
+		}
+
+		if args.decorator {
+			if strings.HasPrefix(trimmedLine, "@") {
+				decorators.WriteString(trimmedLine + "\n")
+			} else if !foundToken {
+				decorators.Reset()
 			}
 		}
 	}
@@ -102,38 +180,4 @@ func (cmd CinjCommand) parsePython(token string, tokenValue string) string {
 		log.Fatal(err)
 	}
 	return content.String()
-}
-
-func (cmd CinjCommand) python() []string {
-	var class string
-	var function string
-	var decorator bool
-	var content []string
-
-	pyFlag := flag.NewFlagSet("pyFlag", flag.PanicOnError)
-	pyFlag.StringVar(&class, "class", "", "Grab entire content of a class")
-	pyFlag.StringVar(&function, "function", "", "Grab contents of a function")
-	pyFlag.BoolVar(&decorator, "decorator", true, "Include decorators when grabbing other content")
-
-	err := pyFlag.Parse(cmd.Args)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if class != "" {
-		classes := strings.Split(class, " ")
-		for _, c := range classes {
-			content = append(content, cmd.parsePython("class", c))
-		}
-	}
-
-	if function != "" {
-		functions := strings.Split(function, " ")
-		for _, f := range functions {
-			content = append(content, cmd.parsePython("function", f))
-		}
-	}
-
-	return content
 }
