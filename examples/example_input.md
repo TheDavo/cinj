@@ -15,12 +15,22 @@ class Test:
     def print_content(self):
         print(self.content)
 
+    @decorator1
+    @decorator2
+    def todo(self):
+        pass
+
 
 class MyABC(ABC):
     def __init__(self):
         pass
 
+    @decorator3
+    @decorator4
     def abc_func(self):
+        pass
+
+    def todo(self):
         pass
 ```
 
@@ -37,6 +47,11 @@ class Test:
     def print_content(self):
         print(self.content)
 
+    @decorator1
+    @decorator2
+    def todo(self):
+        pass
+
 
 ```
 
@@ -47,15 +62,45 @@ command used: cinj{./example.py --function=print_content}
 def print_content(self):
     print(self.content)
 
-
 ```
-
 
 command used: cinj{./example.py --function=abc_func}
 ```python
 # in file example.py
 # in class MyABC(ABC)
+@decorator3
+@decorator4
 def abc_func(self):
+    pass
+
+```
+
+command used: cinj{./example.py --function=abc_func --decorator=false}
+```python
+# in file example.py
+# in class MyABC(ABC)
+def abc_func(self):
+    pass
+
+```
+
+command used: cinj{./example.py --class=Test --function=todo}
+```python
+# in file example.py
+# in class Test
+@decorator1
+@decorator2
+def todo(self):
+    pass
+
+
+```
+
+command used: cinj{./example.py --class=MyABC --function=todo}
+```python
+# in file example.py
+# in class MyABC(ABC)
+def todo(self):
     pass
 ```
 
