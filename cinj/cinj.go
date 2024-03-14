@@ -17,7 +17,7 @@ type Cinj struct {
 	DestFile *os.File
 }
 
-func (c *Cinj) Run() {
+func (c *Cinj) Run() error {
 	file, err := os.Open(c.Filepath)
 	if err != nil {
 		fmt.Println("Failure opening file", c.Filepath)
@@ -27,17 +27,26 @@ func (c *Cinj) Run() {
 
 	newFile, err := os.Create(c.Newname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Print(err)
+		return err
 	}
-	defer newFile.Close()
+	defer file.Close()
 
 	c.SrcFile = file
 	c.DestFile = newFile
 
-	c.cinj()
+	err = c.cinj()
+	if err != nil {
+		newFile.Close()
+		os.Remove(c.Newname)
+		return err
+	}
+
+	newFile.Close()
+	return nil
 }
 
-func (c *Cinj) cinj() {
+func (c *Cinj) cinj() error {
 
 	srcScanner := bufio.NewScanner(c.SrcFile)
 
@@ -48,10 +57,14 @@ func (c *Cinj) cinj() {
 			command, err := c.getCinjCommand(line)
 			if err != nil {
 				log.Fatal(err)
+				return err
 			}
 
 			language := command.fileExtForMarkDown()
-			content := c.getContentFromCommand(command)
+			content, err := c.getContentFromCommand(command)
+			if err != nil {
+				return err
+			}
 
 			contentScanner := bufio.NewScanner(strings.NewReader(content))
 
@@ -61,7 +74,8 @@ func (c *Cinj) cinj() {
 				_, err := c.DestFile.WriteString(contentLine + "\n")
 
 				if err != nil {
-					log.Fatal(err)
+					fmt.Println(err)
+					return err
 				}
 			}
 			c.DestFile.WriteString("```\n")
@@ -71,6 +85,7 @@ func (c *Cinj) cinj() {
 			c.DestFile.WriteString(line + "\n")
 		}
 	}
+	return nil
 }
 
 func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
@@ -95,11 +110,13 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	return cmd, nil
 }
 
-func (c Cinj) getContentFromCommand(cmd CinjCommand) string {
+func (c Cinj) getContentFromCommand(cmd CinjCommand) (string, error) {
 	switch cmd.FileType {
 	case Python:
-		return cmd.python()
+		content, err := cmd.python()
+		return content, err
 	default:
-		return cmd.returnAll()
+		content, err := cmd.returnAll()
+		return content, err
 	}
 }

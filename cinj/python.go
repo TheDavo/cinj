@@ -2,7 +2,9 @@ package cinj
 
 import (
 	"bufio"
+	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -24,7 +26,7 @@ func newPythonArgs() *pythonArgs {
 	}
 }
 
-func (cmd CinjCommand) python() string {
+func (cmd CinjCommand) python() (string, error) {
 	var class string
 	var function string
 	var decorator bool
@@ -35,7 +37,8 @@ func (cmd CinjCommand) python() string {
 	pyFlag := flag.NewFlagSet("pyFlag", flag.PanicOnError)
 	pyFlag.StringVar(&class, "class", "", "Grab entire content of a class")
 	pyFlag.StringVar(&function, "function", "", "Grab contents of a function")
-	pyFlag.BoolVar(&decorator, "decorator", true, "Include decorators when grabbing other content")
+	pyFlag.BoolVar(&decorator, "decorator", true,
+		"Include decorators when grabbing other content")
 
 	err := pyFlag.Parse(cmd.Args)
 
@@ -53,15 +56,16 @@ func (cmd CinjCommand) python() string {
 		pyArgs.function = strings.Split(function, " ")[0]
 	}
 
-	content = cmd.parsePython(*pyArgs)
+	content, err = cmd.parsePython(*pyArgs)
 
-	return content
+	return content, err
 }
 
-func (cmd CinjCommand) parsePython(args pythonArgs) string {
+func (cmd CinjCommand) parsePython(args pythonArgs) (string, error) {
 
 	if args.class == "" && args.function == "" {
-		cmd.returnAll()
+		content, err := cmd.returnAll()
+		return content, err
 	}
 
 	findInsideClass := false
@@ -80,7 +84,7 @@ func (cmd CinjCommand) parsePython(args pythonArgs) string {
 
 	pythonFile, err := os.Open(cmd.Filepath)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	scanner := bufio.NewScanner(pythonFile)
@@ -137,18 +141,22 @@ func (cmd CinjCommand) parsePython(args pythonArgs) string {
 		}
 
 		// Start of the content has been found
-		if strings.Contains(line, lookingFor) && !foundToken && (findInsideClass == foundClass) {
+		if strings.Contains(line, lookingFor) &&
+			!foundToken && (findInsideClass == foundClass) {
 			// foundLoc = index
 			foundToken = true
 			indexNonWs = len(line) - len(trimmedLine)
 
 			// Add flavor text to provide context of the code snippet
-			if len(depth) > 0 && !strings.Contains(depth[len(depth)-1], lookingFor) {
+			if len(depth) > 0 &&
+				!strings.Contains(depth[len(depth)-1], lookingFor) {
+
 				comment := depth[len(depth)-1]
 
 				// Cuts off the colon at the end of python declarations
 				if string(comment[len(comment)-1]) == ":" {
-					content.WriteString("# in " + comment[0:len(comment)-1] + "\n")
+					content.WriteString("# in " +
+						comment[0:len(comment)-1] + "\n")
 				} else {
 					content.WriteString("# in " + comment + "\n")
 				}
@@ -173,11 +181,12 @@ func (cmd CinjCommand) parsePython(args pythonArgs) string {
 
 	if !foundToken {
 		log.Fatal("Token ", lookingFor, " not found!")
+		return "", errors.New(fmt.Sprintf("Token %s not found!", lookingFor))
 	}
 
 	_, err = pythonFile.Seek(0, io.SeekStart)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return content.String()
+	return content.String(), nil
 }

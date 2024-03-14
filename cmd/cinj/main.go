@@ -75,6 +75,9 @@ func main() {
 		}
 	}
 
+	err = cinj.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("newname", cinj.Newname)
-	cinj.Run()
 }

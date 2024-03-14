@@ -17,14 +17,14 @@ func (cmd CinjCommand) extractContent() ([]string, error) {
 	return []string{}, nil
 }
 
-func (cmd CinjCommand) returnAll() string {
+func (cmd CinjCommand) returnAll() (string, error) {
 	content, err := os.ReadFile(cmd.Filepath)
 	if err != nil {
 		log.Fatal(err)
-		return ""
+		return "", err
 	}
 
-	return string(content)
+	return string(content), nil
 
 }
 
