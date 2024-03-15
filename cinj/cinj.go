@@ -17,6 +17,9 @@ type Cinj struct {
 	DestFile *os.File
 }
 
+// Run executes the Cinj command, creating the new file as long as there
+// are no errors during execution. Otherwise, returns an error from
+// any of the operations during the function execution.
 func (c *Cinj) Run() error {
 	file, err := os.Open(c.Filepath)
 	if err != nil {
@@ -46,6 +49,8 @@ func (c *Cinj) Run() error {
 	return nil
 }
 
+// cinj writes the new content from the cinj commands within the initial file
+// into a new file
 func (c *Cinj) cinj() error {
 
 	srcScanner := bufio.NewScanner(c.SrcFile)
@@ -88,6 +93,9 @@ func (c *Cinj) cinj() error {
 	return nil
 }
 
+// getCinjCommand takes in the cinj command from the original file and parses
+// it into a CinjCommand struct. The function returns an error on low arguement
+// counts
 func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	var cmd CinjCommand
 	if len(s) <= 6 {
@@ -110,6 +118,10 @@ func (c Cinj) getCinjCommand(s string) (CinjCommand, error) {
 	return cmd, nil
 }
 
+// getContentFromCommand calls the appropriate file parsing method for
+// each CinjCommand found in a file.
+//
+// The function returns any error found in the file parsing method.
 func (c Cinj) getContentFromCommand(cmd CinjCommand) (string, error) {
 	switch cmd.FileType {
 	case Python:

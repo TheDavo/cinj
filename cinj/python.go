@@ -26,6 +26,8 @@ func newPythonArgs() *pythonArgs {
 	}
 }
 
+// python uses the flag package to parse the cinj command into appropriate
+// variables to later use them in the parsePython function
 func (cmd CinjCommand) python() (string, error) {
 	var class string
 	var function string
@@ -61,6 +63,8 @@ func (cmd CinjCommand) python() (string, error) {
 	return content, err
 }
 
+// parsePython parses a python file for the appropriate content based on the
+// arguments passed in the python() function call
 func (cmd CinjCommand) parsePython(args pythonArgs) (string, error) {
 
 	if args.class == "" && args.function == "" {
