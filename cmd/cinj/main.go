@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	cinj "github.com/TheDavo/cinj/cinj"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	cinj "github.com/TheDavo/cinj/cinj"
 )
 
 func main() {
@@ -25,7 +26,6 @@ func main() {
 	}
 
 	absFp, err := filepath.Abs(fp)
-
 	if err != nil {
 		log.Fatal(err)
 	}

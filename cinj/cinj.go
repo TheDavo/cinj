@@ -52,7 +52,6 @@ func (c *Cinj) Run() error {
 // cinj writes the new content from the cinj commands within the initial file
 // into a new file
 func (c *Cinj) cinj() error {
-
 	srcScanner := bufio.NewScanner(c.SrcFile)
 
 	for srcScanner.Scan() {
@@ -77,7 +76,6 @@ func (c *Cinj) cinj() error {
 			for contentScanner.Scan() {
 				contentLine := contentScanner.Text()
 				_, err := c.DestFile.WriteString(contentLine + "\n")
-
 				if err != nil {
 					fmt.Println(err)
 					return err

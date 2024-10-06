@@ -1,15 +1,13 @@
 package cinj
 
 import (
-	"bufio"
 	"errors"
 	"flag"
-	"fmt"
-	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
+
+	pylex "github.com/TheDavo/cinj/lexers/python"
 )
 
 type pythonArgs struct {
@@ -43,7 +41,6 @@ func (cmd CinjCommand) python() (string, error) {
 		"Include decorators when grabbing other content")
 
 	err := pyFlag.Parse(cmd.Args)
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,131 +63,39 @@ func (cmd CinjCommand) python() (string, error) {
 // parsePython parses a python file for the appropriate content based on the
 // arguments passed in the python() function call
 func (cmd CinjCommand) parsePython(args pythonArgs) (string, error) {
-
 	if args.class == "" && args.function == "" {
 		content, err := cmd.returnAll()
 		return content, err
 	}
 
-	findInsideClass := false
-	foundClass := false
-	lookingForClass := ""
-	if args.class != "" && args.function != "" {
-		findInsideClass = true
-		lookingForClass = "class " + args.class
-	}
-
-	content := strings.Builder{}
-	decorators := strings.Builder{}
-	content.WriteString("# in file " + filepath.Base(cmd.Filepath) + "\n")
-
-	depth := []string{}
-
-	pythonFile, err := os.Open(cmd.Filepath)
-	if err != nil {
-		return "", err
-	}
-
-	scanner := bufio.NewScanner(pythonFile)
-	if scanner.Err() != nil {
-		log.Println(scanner.Err())
-	}
-
-	var lookingFor string
-	if args.class != "" {
-		lookingFor = "class " + args.class
-	}
-
-	if args.function != "" {
-		lookingFor = "def " + args.function
-	}
-
-	index := -1
-	foundToken := false
-	foundEnd := false
-	indexNonWs := 0 // Index of first non-whitespace character
-
-	for scanner.Scan() {
-		// var endSearch int
-		// var foundLoc int
-		index++
-		line := scanner.Text()
-
-		trimmedLine := strings.TrimLeft(line, " \t")
-		if strings.HasPrefix(trimmedLine, "class") {
-			depth = append(depth, trimmedLine)
-			if findInsideClass {
-				if strings.Contains(trimmedLine, lookingForClass) {
-					foundClass = true
-				}
-			}
-		}
-
-		emptyLine := len(line) == 0
-		lenTrim := 0
-		if foundToken {
-			lenTrim = len(line) - len(trimmedLine)
-			endCriteria := lenTrim-indexNonWs <= 0
-			if !emptyLine && endCriteria && !foundEnd {
-				foundEnd = true
-				// endSearch = index
-				break
-			}
-
-			if !emptyLine {
-				content.WriteString(line[indexNonWs:] + "\n")
-			} else {
-				content.WriteString("\n")
-			}
-		}
-
-		// Start of the content has been found
-		if strings.Contains(line, lookingFor) &&
-			!foundToken && (findInsideClass == foundClass) {
-			// foundLoc = index
-			foundToken = true
-			indexNonWs = len(line) - len(trimmedLine)
-
-			// Add flavor text to provide context of the code snippet
-			if len(depth) > 0 &&
-				!strings.Contains(depth[len(depth)-1], lookingFor) {
-
-				comment := depth[len(depth)-1]
-
-				// Cuts off the colon at the end of python declarations
-				if string(comment[len(comment)-1]) == ":" {
-					content.WriteString("# in " +
-						comment[0:len(comment)-1] + "\n")
-				} else {
-					content.WriteString("# in " + comment + "\n")
-				}
-			}
-
-			content.WriteString(decorators.String())
-			if !emptyLine {
-				content.WriteString(line[indexNonWs:] + "\n")
-			} else {
-				content.WriteString("\n")
-			}
-		}
-
-		if args.decorator {
-			if strings.HasPrefix(trimmedLine, "@") {
-				decorators.WriteString(trimmedLine + "\n")
-			} else if !foundToken {
-				decorators.Reset()
-			}
-		}
-	}
-
-	if !foundToken {
-		log.Fatal("Token ", lookingFor, " not found!")
-		return "", errors.New(fmt.Sprintf("Token %s not found!", lookingFor))
-	}
-
-	_, err = pythonFile.Seek(0, io.SeekStart)
+	content, err := os.ReadFile(cmd.Filepath)
+	log.Println("Trying to use python lexer")
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
-	return content.String(), nil
+	pl := pylex.NewLexer(string(content), 4)
+	pl.Lex()
+
+	// Looking only for a class
+	if args.class != "" && args.function == "" {
+		class, err := pl.GetClass(args.class)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		return class, nil
+
+	}
+	// Looking for function
+	if args.function != "" {
+		functionText, err := pl.GetFunction(args.function, args.class)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		return functionText, nil
+	}
+
+	return "", errors.New("Could not parse python file for wanted parameters")
 }
