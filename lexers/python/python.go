@@ -3,6 +3,7 @@ package python
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	lex "github.com/TheDavo/cinj/lexers"
 )
@@ -472,11 +473,16 @@ func (pl *PythonLexer) GetClass(className string) (string, error) {
 
 	for _, idx := range foundTokenLocs {
 		if pl.tokens[idx-1].Type == CLASS {
+			decorators := pl.findDecoratorsAboveToken(pl.tokens[idx-1])
 			_, end, err := pl.findBlockRangePos(IDENT, className)
 			if err != nil {
 				return "", err
 			}
-			return pl.input[pl.tokens[idx-1].StartPosition:end], nil
+			return fmt.Sprintf(
+				"%s%s",
+				decorators,
+				pl.input[pl.tokens[idx-1].StartPosition:end],
+			), nil
 		}
 	}
 
@@ -506,8 +512,15 @@ func (pl *PythonLexer) GetFunction(functionName string,
 				return "", err
 			}
 
+			decorators := pl.findDecoratorsAboveToken(pl.tokens[idx-1])
+
 			if className == "" {
-				return pl.input[pl.tokens[idx-2].StartPosition:end], nil
+				return fmt.Sprintf(
+					"%s%s",
+					decorators,
+					pl.input[pl.tokens[idx-2].StartPosition:end],
+				), nil
+				// return pl.input[pl.tokens[idx-2].StartPosition:end], nil
 			}
 
 			for _, classLine := range keyClassLines {
@@ -520,20 +533,55 @@ func (pl *PythonLexer) GetFunction(functionName string,
 						return "", err
 					}
 					fmt.Println(parentLine)
-					function := fmt.Sprintf("%s#----%s",
+					function := fmt.Sprintf("%s#----%s%s",
 						// idx-2 here to grab the correct spacing
 						// idx-1 does not work as the tokenizer skips indentation
 						// and the start position of idx-1 is after
 						// the indentation
-						parentLine, pl.input[pl.tokens[idx-2].StartPosition:end])
+						parentLine, decorators,
+						pl.input[pl.tokens[idx-2].StartPosition:end])
 					return function, nil
 
 				}
 			}
 		}
 	}
-
 	return "", errors.New("Could not find class")
+}
+
+func (pl PythonLexer) findDecoratorsAboveToken(t lex.Token) string {
+	tLine := t.Line
+	decoratorOffset := 1
+	line, err := pl.getLine(tLine - decoratorOffset - 1)
+	decoratorStr := ""
+
+	if err != nil {
+		return ""
+	}
+
+	for len(line) >= t.Column && (line != NEWLINE && line != "") {
+		if line[t.Column-1] == '@' {
+			decoratorOffset++
+		} else {
+			decoratorOffset--
+			break
+		}
+		line, err = pl.getLine(tLine - decoratorOffset - 1)
+		if err != nil {
+			return ""
+		}
+	}
+
+	for i := tLine - decoratorOffset - 1; i < tLine-1; i++ {
+		line, err = pl.getLine(i)
+		if err != nil {
+			return ""
+		}
+		decoratorStr += line
+
+	}
+	decoratorStr = strings.TrimSuffix(decoratorStr, "\r\n")
+	return decoratorStr
 }
 
 func (pl PythonLexer) getLine(line int) (string, error) {
