@@ -1,4 +1,3 @@
-
 # About
 Cinj is a command line tool that expands on the markdown syntax to make
 code report generation easier. 
@@ -39,7 +38,7 @@ A new name for the output file can be specified when calling Cinj
 
 ```c
 
->> cinj -fp my_report.md --name="new_name.md"
+>> cinj -fp my_report.cinj.md --newname="new_name.md"
 >> ls
 >> my_report.md new_name.md
 
@@ -77,10 +76,6 @@ cinj{./my_file.py --class="ExampleClass"}
 # Grab a function from the file
 cinj{./my_file.py --function="example_function"}
 
-# Opt out of including decorator names in the content grab when not grabbing
-# all file contents, default is true
-cinj{./my_file.py --function="example_function" --decorator="false"}
-
 ```
 
 Implemented:
@@ -113,7 +108,7 @@ and only a particular `__init__` function needs to be copied over, for example.
 Cinj will panic on by default on any error, but can be overridden with the
 `--no-panic` flag. This
 
-## File Not Found - Not Implemented
+## File Not Found
 
 Should the file that the Cinj command is used on is not found, an error is
 thrown and not further action is taken. This error is not logged.
@@ -125,11 +120,10 @@ thrown and not further action is taken. This error is not logged.
 >> 
 
 ```
-## File Not Found (Inside Markdown File) - Not Implemented
+## File Not Found (Inside Markdown File)
 
 Should a file not be found during the markdown file scan, Cinj will `panic` by
-default and exit execution. This can be overridden by using the `--no-panic`
-flag.
+default and exit execution. 
 
 ### Not Panicking - Not Implemented
 

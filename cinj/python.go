@@ -11,16 +11,14 @@ import (
 )
 
 type pythonArgs struct {
-	decorator bool
-	class     string
-	function  string
+	class    string
+	function string
 }
 
 func newPythonArgs() *pythonArgs {
 	return &pythonArgs{
-		decorator: false,
-		class:     "",
-		function:  "",
+		class:    "",
+		function: "",
 	}
 }
 
@@ -29,7 +27,6 @@ func newPythonArgs() *pythonArgs {
 func (cmd CinjCommand) python() (string, error) {
 	var class string
 	var function string
-	var decorator bool
 	var content string
 
 	pyArgs := newPythonArgs()
@@ -37,15 +34,11 @@ func (cmd CinjCommand) python() (string, error) {
 	pyFlag := flag.NewFlagSet("pyFlag", flag.PanicOnError)
 	pyFlag.StringVar(&class, "class", "", "Grab entire content of a class")
 	pyFlag.StringVar(&function, "function", "", "Grab contents of a function")
-	pyFlag.BoolVar(&decorator, "decorator", true,
-		"Include decorators when grabbing other content")
 
 	err := pyFlag.Parse(cmd.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	pyArgs.decorator = decorator
 
 	if class != "" {
 		pyArgs.class = strings.Split(class, " ")[0]

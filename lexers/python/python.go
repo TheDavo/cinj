@@ -368,6 +368,8 @@ func (pl PythonLexer) findKeywordThenIdentifierLine(tt lex.TokenType, ident stri
 	return 0, nil
 }
 
+// findKeywordThenIdentifierLines is used to find specific two-token pairs
+// such as class ClassName or def function_name
 func (pl PythonLexer) findKeywordThenIdentifierLines(
 	tt lex.TokenType,
 	ident string,
@@ -465,6 +467,8 @@ func (pl PythonLexer) findBlockRangePosFromToken(t lex.Token, idx int) (int, int
 	return 0, 0, errors.New("Cannot find block range for the token")
 }
 
+// GetClass returns a string corresponding to a class block in the text input
+// of the lexer
 func (pl *PythonLexer) GetClass(className string) (string, error) {
 	_, foundTokenLocs, err := pl.findTokens(IDENT, className)
 	if err != nil {
@@ -489,6 +493,8 @@ func (pl *PythonLexer) GetClass(className string) (string, error) {
 	return "", errors.New("Could not find class")
 }
 
+// GetFunction returns a string corresponding to a function
+// block in the text input of the lexer
 func (pl *PythonLexer) GetFunction(functionName string,
 	className string,
 ) (string, error) {
@@ -523,6 +529,7 @@ func (pl *PythonLexer) GetFunction(functionName string,
 				// return pl.input[pl.tokens[idx-2].StartPosition:end], nil
 			}
 
+			// Add flavor text showing which class the function is in
 			for _, classLine := range keyClassLines {
 				fmt.Println("classLine", classLine)
 				if classLine < pl.tokens[idx].Line {
@@ -549,13 +556,17 @@ func (pl *PythonLexer) GetFunction(functionName string,
 	return "", errors.New("Could not find class")
 }
 
+// findDecoratorsAboveToken is a helper function to find decorators that
+// are used in functions and classes in Python
+// This function is needed as the currently there is no tree style setup
+// that links the decorators to a function or token
 func (pl PythonLexer) findDecoratorsAboveToken(t lex.Token) string {
 	tLine := t.Line
 	decoratorOffset := 1
 	line, err := pl.getLine(tLine - decoratorOffset - 1)
 	decoratorStr := ""
 
-	if err != nil {
+	if err != nil || t.Line == 1 {
 		return ""
 	}
 
@@ -584,6 +595,8 @@ func (pl PythonLexer) findDecoratorsAboveToken(t lex.Token) string {
 	return decoratorStr
 }
 
+// getLine returns a string corresponding to the line of the text input of
+// the lexer
 func (pl PythonLexer) getLine(line int) (string, error) {
 	if line < 0 || line >= len(pl.lines) {
 		return "", errors.New("line value out of bounds")
