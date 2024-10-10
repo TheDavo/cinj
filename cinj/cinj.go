@@ -70,8 +70,8 @@ func (c *Cinj) cinj() error {
 				return err
 			}
 
-			contentScanner := bufio.NewScanner(strings.NewReader(content))
-
+			contentScanner := bufio.NewScanner(
+				strings.NewReader(content))
 			c.DestFile.WriteString("```" + language.String() + "\n")
 			for contentScanner.Scan() {
 				contentLine := contentScanner.Text()
