@@ -62,7 +62,6 @@ func (cmd CinjCommand) parsePython(args pythonArgs) (string, error) {
 	}
 
 	content, err := os.ReadFile(cmd.Filepath)
-	log.Println("Trying to use python lexer")
 	if err != nil {
 		log.Fatal(err)
 		return "", err

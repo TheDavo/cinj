@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -17,7 +18,7 @@ func main() {
 	var newname string
 
 	flag.StringVar(&fp, "fp", "", "Filepath of the Markdown file to Cinj")
-	flag.StringVar(&newname, "newname", "", "New name for output file")
+	flag.StringVar(&newname, "newname", "", "New name for output file, not including extension")
 
 	flag.Parse()
 	if fp == "" {
@@ -25,54 +26,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Println(fp)
 	absFp, err := filepath.Abs(fp)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fileext := filepath.Ext(absFp)
+	fmt.Println(absFp)
 
-	if fileext != ".md" && fileext != ".cinj" {
-		log.Fatal("Unrecognized or incorrect filetype")
+	_, fileNameNoExt, err := getExtension(absFp)
+
+	if err != nil {
+		log.Fatal(err.Error())
 		os.Exit(1)
 	}
 	cinj.Filepath = absFp
 
-	// Default case
 	if newname == "" {
-		temp1, found1 := strings.CutSuffix(absFp, ".cinj")
-		temp2, found2 := strings.CutSuffix(absFp, ".md")
-		temp3, found3 := strings.CutSuffix(absFp, ".cinj.md")
-		if found3 {
-			cinj.Newname = temp3 + ".md"
-		} else if found2 {
-			cinj.Newname = temp2 + ".cinj.md"
-		} else if found1 {
-			cinj.Newname = temp1 + ".md"
-		}
+		cinj.Newname = fileNameNoExt + ".md"
 	} else {
-		if filepath.IsAbs(newname) {
-			// Handle the case that the newname flag is the same as the original file
-			if newname == absFp {
-				if fileext == ".md" {
-					newname = newname[:len(newname)-len(fileext)] + ".cinj.md"
-				} else {
-					newname = newname[:len(newname)-len(fileext)] + ".md"
-				}
-				cinj.Newname = newname
-			}
-			cinj.Newname = newname
-		} else {
-			absNew, _ := filepath.Abs(newname)
-			if absNew == absFp {
-				if fileext == ".md" {
-					absNew = absNew[:len(absNew)-len(fileext)] + ".cinj.md"
-				} else {
-					absNew = absNew[:len(absNew)-len(fileext)] + ".md"
-				}
-			}
-			cinj.Newname = absNew
-		}
+		cinj.Newname = filepath.Join(filepath.Dir(absFp), newname+".md")
 	}
 
 	err = cinj.Run()
@@ -80,4 +53,27 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("newname", cinj.Newname)
+}
+
+// getExtension is a helper function that returns the correct Cinj-allowed
+// extensions or an error
+// The allowed extensions are ".cinj.md" or ".cinj"
+// This function returns ".cinj.md" or ".cinj" depending on extension
+func getExtension(fn string) (string, string, error) {
+	fileNoCinj, foundCinj := strings.CutSuffix(fn, ".cinj")
+	fileNoCinjMd, foundCinjMd := strings.CutSuffix(fn, ".cinj.md")
+
+	if !foundCinj && !foundCinjMd {
+		return "", "", errors.New("No appropriate file extension found")
+	}
+
+	if foundCinj {
+		return ".cinj", fileNoCinj, nil
+	}
+
+	if foundCinjMd {
+		return ".cinj.md", fileNoCinjMd, nil
+	}
+
+	return "", "", errors.New("No appropriate file extension found")
 }
