@@ -531,7 +531,6 @@ func (pl *PythonLexer) GetFunction(functionName string,
 
 			// Add flavor text showing which class the function is in
 			for _, classLine := range keyClassLines {
-				fmt.Println("classLine", classLine)
 				if classLine < pl.tokens[idx].Line {
 					parentLine, err := pl.getLine(
 						classLine - 1,
@@ -539,7 +538,6 @@ func (pl *PythonLexer) GetFunction(functionName string,
 					if err != nil {
 						return "", err
 					}
-					fmt.Println(parentLine)
 					function := fmt.Sprintf("%s#----%s%s",
 						// idx-2 here to grab the correct spacing
 						// idx-1 does not work as the tokenizer skips indentation
