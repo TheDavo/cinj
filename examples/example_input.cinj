@@ -1,8 +1,8 @@
 # Header 1
 This is content before the code snippet!
 
-command used: cinj{c:/users/david/documents/projects/cinj/examples/example.py}
-cinj{c:/users/david/documents/projects/cinj/examples/example.py}
+command used: cinj{c:/users/davit/documents/projects/cinj/examples/example.py}
+cinj{c:/users/davit/documents/projects/cinj/examples/example.py}
 
 
 Use supported commands to grab pertinent content!
@@ -11,6 +11,8 @@ Use supported commands to grab pertinent content!
 command used: cinj{./example.py --class=Test}
 cinj{./example.py --class=Test}
 
+command used: cinj{./example.py --class=MyABC}
+cinj{./example.py --class=MyABC}
 
 command used: cinj{./example.py --function=print_content}
 cinj{./example.py --function=print_content}
@@ -20,8 +22,8 @@ command used: cinj{./example.py --function=abc_func}
 cinj{./example.py --function=abc_func}
 
 
-command used: cinj{./example.py --function=abc_func --decorator=false}
-cinj{./example.py --function=abc_func --decorator=false}
+command used: cinj{./example.py --function=abc_func}
+cinj{./example.py --function=abc_func}
 
 
 command used: cinj{./example.py --class=Test --function=todo}
