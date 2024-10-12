@@ -12,27 +12,44 @@ import (
 	cinj "github.com/TheDavo/cinj/cinj"
 )
 
+var cinjDescription = `Cinj is a command line tool that expands on the markdown syntax to make
+code report generation easier. 
+
+By modifying code block syntax in a markdown file,
+automating code-heavy report generation is now an easier process, especially when paired
+with tools such as 'pandoc' and 'weasyprint' for PDF generation.`
+
 func main() {
 	var cinj cinj.Cinj
-	var fp string
 	var newname string
 
-	flag.StringVar(&fp, "fp", "", "Filepath of the Markdown file to Cinj")
-	flag.StringVar(&newname, "newname", "", "New name for output file, not including extension")
+	flag.StringVar(
+		&newname,
+		"newname",
+		"",
+		"New name for output file, not including extension,\n\tfor example --newname new_report_name",
+	)
+
+	flag.Usage = func() {
+		w := flag.CommandLine.Output()
+
+		fmt.Fprintf(w, "Usage of %s\n", os.Args[0])
+		fmt.Fprintf(w, "cinj [options] filepath\n")
+		fmt.Fprintf(w, "%s\n\n", cinjDescription)
+		fmt.Fprintln(w, "Options and flags:")
+		flag.PrintDefaults()
+	}
 
 	flag.Parse()
-	if fp == "" {
-		log.Fatal("No file provided")
+	if flag.NArg() != 1 {
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	fmt.Println(fp)
-	absFp, err := filepath.Abs(fp)
+	absFp, err := filepath.Abs(flag.Arg(0))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println(absFp)
 
 	_, fileNameNoExt, err := getExtension(absFp)
 
@@ -52,7 +69,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("newname", cinj.Newname)
+	fmt.Println("Newly Cinj'd filename:", cinj.Newname)
 }
 
 // getExtension is a helper function that returns the correct Cinj-allowed

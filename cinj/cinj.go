@@ -23,8 +23,8 @@ type Cinj struct {
 func (c *Cinj) Run() error {
 	file, err := os.Open(c.Filepath)
 	if err != nil {
-		fmt.Println("Failure opening file", c.Filepath)
-		log.Fatal(err)
+		fmt.Println("Error, file not found:", c.Filepath)
+		os.Exit(1)
 	}
 	defer file.Close()
 

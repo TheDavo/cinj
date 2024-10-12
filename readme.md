@@ -2,11 +2,11 @@
 Cinj is a command line tool that expands on the markdown syntax to make
 code report generation easier. 
 
-By modifying code block syntax a little bit,
-automating report generation is now an easier process, especially when paired
-with tools such as `pandoc` and `weasyprint` for PDF generation. 
+By modifying code block syntax in a markdown file,
+automating code-heavy report generation is now an easier process, especially 
+when paired with tools such as `pandoc` and `weasyprint` for PDF generation. 
 
-Replace what would be the block of code with the Cinj command
+Replace what would be a block of code with the Cinj command
 in the markdown file as so:
 
 ```python
@@ -21,24 +21,31 @@ cinj{./my_file.py}
 ```
 
 Cinj will now look for that file and replace the contents of the parent file
-with a code block of the content searched file.
+with a code block of the file specified in the Cinj command.
 
 The original Cinj file is not modified, and instead a new file with the same
-name but without the Cinj extension is created.
+base name but now with a `.md` Markdown extension. 
+
+## Usage
+
+To use Cinj call it from the terminal, specifying the file to be worked on. The
+only allowed files are those with either a `.cinj` or `.cinj.md` extension.
 
 ```c
 
->> cinj -fp my_report.cinj.md
+>> cinj ./my_report.cinj.md
 >> ls
 >> my_report.md my_report.cinj.md
 
 ```
 
-A new name for the output file can be specified when calling Cinj
+A new name for the output file can be specified when calling Cinj by using the
+`newname` flag. Note that since Go's `flag` package is used, all positional
+arguements must come _after_ any other flags.
 
 ```c
 
->> cinj -fp my_report.cinj.md --newname="new_name.md"
+>> cinj --newname="new_name.md" ./my_report.cinj.md 
 >> ls
 >> my_report.md new_name.md
 
@@ -116,7 +123,7 @@ thrown and not further action is taken. This error is not logged.
 ```c
 
 >> cinj not_found.md
->> >> Error: file not_found.md not found
+>> >> Error, file not found: not_found.md
 >> 
 
 ```
@@ -132,7 +139,7 @@ an error has occurred and that a `cinj.log` has been written with the latest
 errors.
 
 ```c
->> cinj my_report.md --no-panic
+>> cinj --no-panic my_report.md 
 >> >> Error on line: 34 cinj{my_file.py --class="ExampleClass"}
 >> >> Error: File my_file.py not found
 >> >> Logged to cinj.log
